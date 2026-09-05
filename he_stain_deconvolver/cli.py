@@ -146,7 +146,11 @@ def main(argv=None):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     summary_rows = []
+    processed_count = 0
     for image_path in images:
+        if not image_path.exists():
+            print(f"Skipping '{image_path}': file not found.", file=sys.stderr)
+            continue
         try:
             stats = process_image(
                 image_path, out_dir, matrix, names, args.mode, args.threshold, args.white_ref
@@ -155,6 +159,7 @@ def main(argv=None):
             print(f"Skipping '{image_path}': {exc}", file=sys.stderr)
             continue
 
+        processed_count += 1
         print(f"{image_path.name}:")
         for name, s in stats.items():
             print(
@@ -165,6 +170,10 @@ def main(argv=None):
             summary_rows.append(
                 [image_path.name, name, s["mean_od"], s["percent_positive_area"], s["max_od"], s["min_od"]]
             )
+
+    if processed_count == 0:
+        print("No images were successfully processed.", file=sys.stderr)
+        return 1
 
     summary_path = out_dir / "stain_statistics.csv"
     with open(summary_path, "w", newline="") as f:

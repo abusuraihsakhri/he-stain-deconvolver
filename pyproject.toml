@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "he-stain-deconvolver"
+version = "0.1.0"
+description = "Ruifrok & Johnston (2001) color deconvolution for unmixing hematoxylin, eosin, and DAB stain contributions in RGB histology images."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Dr. Abu Suraih Sakhri", email = "abusuraihsakhri@github.com"},
+]
+keywords = ["histology", "color-deconvolution", "hematoxylin", "eosin", "DAB", "biomedical"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = [
+    "numpy>=1.24",
+    "Pillow>=10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+web = [
+    "fastapi>=0.111",
+    "uvicorn>=0.30",
+    "pydantic>=2.0",
+]
+all = [
+    "pytest>=7.0",
+    "fastapi>=0.111",
+    "uvicorn>=0.30",
+    "pydantic>=2.0",
+]
+
+[project.scripts]
+he-stain-deconvolver = "he_stain_deconvolver.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/abusuraihsakhri/he-stain-deconvolver"
+Repository = "https://github.com/abusuraihsakhri/he-stain-deconvolver"
+
+[tool.setuptools.packages.find]
+include = ["he_stain_deconvolver*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "test_deconvolution.py"]
+python_files = ["test_*.py"]

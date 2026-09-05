@@ -8,6 +8,7 @@ import json
 import time
 import hmac
 import hashlib
+import secrets
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
@@ -16,7 +17,6 @@ PHI_PATTERNS = [
     re.compile(r"\b(?:MRN|mrn)[:#\s-]*\d{4,10}\b", re.IGNORECASE),
     re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
     re.compile(r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),
-    re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"),
     re.compile(r"\b(?:DOB|Date of Birth)[:\s]*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b", re.IGNORECASE),
     re.compile(r"\b(?:Patient\s+Name|Patient)[:\s]+[A-Z][a-z]+\s+[A-Z][a-z]+\b", re.IGNORECASE),
     re.compile(r"\b(?:John\s+Doe|Jane\s+Smith|Alice\s+Johnson)\b", re.IGNORECASE),
@@ -56,8 +56,18 @@ class PHIGuard:
 
 class AuditTrail:
     """Cryptographic Tamper-Evident HMAC-SHA256 Audit Trail."""
+
     def __init__(self, secret_key: Optional[str] = None):
-        self.secret_key = (secret_key or os.getenv("AUDIT_SECRET_KEY", "he-stain-deconvolver-master-audit-key-2026")).encode("utf-8")
+        env_key = os.getenv("AUDIT_SECRET_KEY")
+        if secret_key:
+            self.secret_key = secret_key.encode("utf-8")
+        elif env_key:
+            self.secret_key = env_key.encode("utf-8")
+        else:
+            # Generate a cryptographically secure random key per process.
+            # NOTE: For multi-process deployments, set AUDIT_SECRET_KEY env var
+            # so all processes share the same key for audit verification.
+            self.secret_key = secrets.token_bytes(32)
         self.logs: List[Dict[str, Any]] = []
 
     def log(self, actor: str, actor_tier: str, event_type: str, details: Dict[str, Any]) -> Dict[str, Any]:
