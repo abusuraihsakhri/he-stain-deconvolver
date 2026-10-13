@@ -1,236 +1,114 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>He Stain Deconvolver — Operations Console</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #090d16;
-            --card: #111827;
-            --border: #1f293d;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.25);
-            --text: #f3f4f6;
-            --text-muted: #9ca3af;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --success: #10b981;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 2rem;
-            min-height: 100vh;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .header-title h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
-        .header-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem; }
-        .badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: var(--accent-glow);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 1.5rem;
-        }
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; }
-        input, select, textarea {
-            width: 100%;
-            padding: 0.65rem 0.9rem;
-            background: #0d1322;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: #fff;
-            font-family: inherit;
-            font-size: 0.9rem;
-        }
-        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-        .btn {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 0.7rem 1.4rem;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-        }
-        .btn:hover { background: #2563eb; }
-        .terminal {
-            background: #060911;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: #10b981;
-            height: 380px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        .metrics-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .metric-box {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-        }
-        .metric-val { font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 0.25rem; }
-        .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Local, browser-based H&E and H-DAB histology stain deconvolution.">
+  <title>H&E Stain Deconvolver</title>
+  <style>
+    :root { color-scheme: light; --ink:#17263b; --muted:#53667e; --line:#d9e3ee; --blue:#245fad; --pale:#edf4fc; --surface:#fff; }
+    * {box-sizing:border-box}
+    body {margin:0;background:#f4f7fb;color:var(--ink);font:15px/1.52 system-ui,-apple-system,"Segoe UI",sans-serif}
+    .shell {max-width:1320px;margin:auto;padding:24px clamp(16px,3vw,40px) 56px}
+    header {display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px}
+    h1 {margin:0;font-size:clamp(1.6rem,3vw,2.1rem);letter-spacing:-.035em}
+    .subtitle {margin:6px 0 0;color:var(--muted);max-width:650px}
+    .privacy {border-radius:40px;color:#205d43;background:#e3f5e9;font-weight:650;font-size:.79rem;padding:7px 12px;white-space:nowrap}
+    .layout {display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:20px;align-items:start}
+    .panel {background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 3px 15px #16263a08}
+    h2 {font-size:1rem;margin:0 0 16px}
+    .field {margin:0 0 16px}
+    label {display:block;font-size:.86rem;font-weight:650;margin-bottom:6px}
+    input,select {width:100%;padding:10px 11px;border:1px solid #abbacf;border-radius:7px;background:#fff;color:var(--ink);font:inherit}
+    input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible {outline:3px solid #78aaf5;outline-offset:2px}
+    input[type=file] {font-size:.86rem;max-width:100%;border-style:dashed;background:#f7faff}
+    .hint {font-size:.76rem;color:var(--muted);margin:5px 0 0}
+    button,.button-link {display:inline-flex;align-items:center;justify-content:center;border:1px solid transparent;border-radius:7px;background:var(--blue);color:#fff;font:650 .9rem/1.2 inherit;font-family:inherit;font-size:.9rem;font-weight:650;padding:11px 14px;cursor:pointer;text-decoration:none}
+    button:hover,.button-link:hover {background:#164d93}
+    button:disabled {opacity:.5;cursor:not-allowed}
+    button.secondary,.button-link.secondary {border-color:#bdccdd;background:#fff;color:var(--blue)}
+    button.secondary:hover,.button-link.secondary:hover {background:var(--pale)}
+    .controls {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .controls .field {min-width:0}
+    .actions {display:flex;flex-wrap:wrap;gap:10px}
+    .actions button {flex:1}
+    .message {font-size:.86rem;min-height:2.7em;margin:14px 0 0;color:var(--muted)}
+    .message.error {color:#ab2a38}
+    .message.success {color:#246344}
+    .preview {border:1px solid var(--line);background:#f8fbff;border-radius:10px;padding:10px}
+    .preview canvas {display:block;width:100%;height:auto;max-height:320px;object-fit:contain;background:repeating-conic-gradient(#e7eef5 0 25%,#fff 0 50%) 50%/20px 20px;border-radius:5px}
+    .placeholder {color:var(--muted);text-align:center;padding:60px 12px}
+    #original {display:none}
+    .result-head {display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin:24px 0 12px}
+    .result-head h2 {margin:0}
+    .result-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .result-card {border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+    .result-card h3 {font-size:.91rem;text-transform:capitalize;margin:0 0 10px}
+    .result-card canvas {display:block;width:100%;height:auto;max-height:260px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:5px}
+    .stats {font-variant-numeric:tabular-nums;font-size:.77rem;color:var(--muted);margin:10px 0;overflow-wrap:anywhere}
+    .small {font-size:.79rem;color:var(--muted)}
+    .notice {margin:22px 0 0;color:var(--muted);font-size:.83rem;line-height:1.5}
+    .notice strong {color:var(--ink)}
+    a {color:var(--blue)}
+    [hidden] {display:none!important}
+    @media(max-width:850px) {.layout{grid-template-columns:1fr}.result-grid{grid-template-columns:1fr 1fr} .shell{padding-top:16px}}
+    @media(max-width:540px) {header{flex-direction:column;gap:9px}.result-grid{grid-template-columns:1fr}.controls{grid-template-columns:1fr}.panel{padding:16px}}
+  </style>
+  <script type="module" src="./app.mjs"></script>
 </head>
 <body>
-
-    <div class="header">
-        <div class="header-title">
-            <h1>He Stain Deconvolver</h1>
-            <p>Domain: Clinical & Cryptographic AI | Standard: CAP / CLSI / NIST Standards | LabMind-Atlas Architecture</p>
-        </div>
-        <div>
-            <span class="badge">Air-Gapped Active</span>
-            <span class="badge" style="background: rgba(16,185,129,0.2); color: #10b981; border-color: #10b981;">Zero-PHI Guard Active</span>
-        </div>
+<main class="shell">
+  <header>
+    <div>
+      <h1>H&amp;E Stain Deconvolver</h1>
+      <p class="subtitle">Optical-density color separation for histology images using the Ruifrok–Johnston linear unmixing method.</p>
     </div>
-
-    <div class="metrics-bar">
-        <div class="metric-box">
-            <div class="metric-label">System Status</div>
-            <div class="metric-val" style="color: var(--success);" id="m-status">OPTIMAL</div>
+    <span class="privacy">Local image processing · No upload</span>
+  </header>
+  <div class="layout">
+    <section class="panel" aria-labelledby="settings-title">
+      <h2 id="settings-title">Image &amp; settings</h2>
+      <form id="form">
+        <div class="field">
+          <label for="file">Histology image</label>
+          <input id="file" name="file" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" required>
+          <p class="hint">PNG, JPG, WebP, or browser-supported BMP. Maximum 12 MP.</p>
         </div>
-        <div class="metric-box">
-            <div class="metric-label">Tasks Processed</div>
-            <div class="metric-val" id="m-tasks">142</div>
+        <div class="controls">
+          <div class="field"><label for="preset">Stain vectors</label>
+            <select id="preset"><option value="HE">H&amp;E</option><option value="HDAB">H-DAB</option></select>
+          </div>
+          <div class="field"><label for="mode">Channel rendering</label>
+            <select id="mode"><option value="pseudocolor">Pseudocolor</option><option value="grayscale">Grayscale</option></select>
+          </div>
         </div>
-        <div class="metric-box">
-            <div class="metric-label">Audit Blocks Signed</div>
-            <div class="metric-val" id="m-audit">142</div>
+        <div class="field"><label for="threshold">Positive-area OD threshold</label>
+          <input id="threshold" type="number" min="0" max="10" step="0.01" value="0.15" required>
+          <p class="hint">Concentration strictly greater than this value is counted as positive.</p>
         </div>
-        <div class="metric-box">
-            <div class="metric-label">PHI Interceptions</div>
-            <div class="metric-val" style="color: var(--accent);" id="m-phi">0</div>
+        <div class="field"><label for="white">Optional white reference (R,G,B)</label>
+          <input id="white" type="text" placeholder="e.g. 240,240,240" autocomplete="off">
+          <p class="hint">Leave blank to use uncorrected image intensities.</p>
         </div>
-    </div>
-
-    <div class="grid">
-        <div class="card">
-            <h2>⚙️ Dispatch Distributed Component Audit</h2>
-            <div class="form-group">
-                <label>Task / Sample ID</label>
-                <input type="text" id="task_id" value="TASK-2026-LIVE-01">
-            </div>
-            <div class="form-group">
-                <label>Target Identifier</label>
-                <input type="text" id="target_id" value="SPECIMEN-ALPHA-77">
-            </div>
-            <div class="form-group">
-                <label>Primary Measurement / Value</label>
-                <input type="number" id="primary_metric" value="29.4" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Secondary Metric / Kinetic Index</label>
-                <input type="number" id="secondary_metric" value="14.8" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Status / Phenotype Descriptor</label>
-                <input type="text" id="status_descriptor" value="DISCORDANT_ANOMALY">
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" id="is_critical" checked> Trigger Emergency / Critical Flag</label>
-            </div>
-            <button class="btn" onclick="runAudit()">Execute Distributed Component Audit</button>
+        <div class="actions"><button type="submit" id="process" disabled>Deconvolve image</button><button type="reset" class="secondary">Reset</button></div>
+        <p id="status" class="message" role="status" aria-live="polite">Select an image to begin.</p>
+      </form>
+      <div class="notice"><strong>Scientific note:</strong> Reference stain vectors are approximate, scanner-dependent values. Results are descriptive and are not validated for clinical decision-making or quantitative pathology without calibration.</div>
+    </section>
+    <section class="panel" aria-labelledby="preview-title">
+      <h2 id="preview-title">Original image</h2>
+      <div class="preview"><div id="placeholder" class="placeholder">Your image preview appears here.</div><canvas id="original" aria-label="Original histology image"></canvas></div>
+      <p id="dimensions" class="small">Images remain in your browser; no server connection is required.</p>
+      <div id="results" hidden>
+        <div class="result-head">
+          <h2>Separated channels</h2>
+          <button type="button" id="download-csv" class="secondary">Download statistics CSV</button>
         </div>
-
-        <div class="card">
-            <h2>📊 Real-Time Consensus Dossier & Audit Log</h2>
-            <div class="terminal" id="outputConsole">// He Stain Deconvolver Operations Console Ready
-// Connection established with Air-Gapped Supervisor
-// Cryptographic HMAC-SHA256 audit ledger loaded.
-// Ready for live task payload dispatch...</div>
-        </div>
-    </div>
-
-    <script>
-        async function runAudit() {
-            const consoleEl = document.getElementById('outputConsole');
-            consoleEl.innerText = "// Dispatching task across specialized workers...
-// Invoking InvariantQCWorker, SafetyEscalationWorker, ProtocolWorker...";
-
-            const payload = {
-                task_id: document.getElementById('task_id').value,
-                target_identifier: document.getElementById('target_id').value,
-                primary_metric: parseFloat(document.getElementById('primary_metric').value),
-                secondary_metric: parseFloat(document.getElementById('secondary_metric').value),
-                status_descriptor: document.getElementById('status_descriptor').value,
-                is_critical_flag: document.getElementById('is_critical').checked
-            };
-
-            try {
-                const res = await fetch('/api/audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                consoleEl.innerText = JSON.stringify(data, null, 2);
-                document.getElementById('m-tasks').innerText = parseInt(document.getElementById('m-tasks').innerText) + 1;
-                document.getElementById('m-audit').innerText = parseInt(document.getElementById('m-audit').innerText) + 1;
-            } catch (err) {
-                consoleEl.innerText = "// Offline / Simulation Output:\n" + JSON.stringify({
-                    dossier_id: "DOSSIER-SIM-" + Math.floor(Math.random()*10000),
-                    system: "he-stain-deconvolver",
-                    domain: "Clinical & Cryptographic AI",
-                    task_id: payload.task_id,
-                    overall_urgency: payload.is_critical_flag ? "CRITICAL_STAT_PANIC" : "ELEVATED_RISK",
-                    integrity_status: "DISCORDANT_ANOMALY",
-                    alerts: [
-                        { worker: "InvariantQCWorker", alert: "Primary metric exceeds upper reference bound" },
-                        { worker: "SafetyEscalationWorker", alert: "Critical emergency interlock flag active" }
-                    ],
-                    audit_hash: "HMAC_SHA256_e83f9a72b941d6c381f9"
-                }, null, 2);
-            }
-        }
-    </script>
+        <div class="result-grid" id="channels"></div>
+      </div>
+    </section>
+  </div>
+  <p class="notice">The third channel is the orthogonal residual of the selected two-stain basis. Negative concentrations may occur during linear unmixing. <a href="https://github.com/abusuraihsakhri/he-stain-deconvolver">Source and Python CLI</a> · MIT license.</p>
+</main>
 </body>
 </html>

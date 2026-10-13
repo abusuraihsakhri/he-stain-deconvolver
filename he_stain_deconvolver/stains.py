@@ -29,8 +29,10 @@ STAIN_VECTORS = {
 def normalize_vector(vector):
     """Return `vector` scaled to unit length."""
     v = np.asarray(vector, dtype=np.float64)
+    if v.shape != (3,) or not np.all(np.isfinite(v)):
+        raise ValueError("Stain vector must contain exactly three finite OD components.")
     norm = np.linalg.norm(v)
-    if norm < 1e-10:
+    if not np.isfinite(norm) or norm < 1e-10:
         raise ValueError("Stain vector has zero norm and cannot be normalized.")
     return v / norm
 
