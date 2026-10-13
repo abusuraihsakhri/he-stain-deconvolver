@@ -57,11 +57,18 @@ def run_simulation(iterations: int = 100):
     print(f"  Routine Outcomes:          {nominal_count} ({nominal_count/iterations*100:.1f}%)")
     print(f"  Elevated Risk Outcomes:    {elevated_count} ({elevated_count/iterations*100:.1f}%)")
     print(f"  Critical Interventions:    {critical_count} ({critical_count/iterations*100:.1f}%)")
-    print(f"  Adversarial PHI Intercepts:{phi_blocked_count} (100% Interception Rate)")
+    print(f"  Simulated PHI Test Blocks: {phi_blocked_count}")
     print(f"  HMAC Audit Ledger Blocks:  {len(AuditLogger.get_trail())}")
     print(f"  HMAC Cryptographic Check:  {AuditLogger.verify_integrity()}")
     print("=" * 70)
 
 if __name__ == "__main__":
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 100
+    import argparse
+    parser = argparse.ArgumentParser(description="Simulate supervisor workloads.")
+    parser.add_argument("iterations", nargs="?", type=int, default=100)
+    parser.add_argument("--tasks", type=int, help="Number of simulated tasks.")
+    args = parser.parse_args()
+    n = args.tasks if args.tasks is not None else args.iterations
+    if n < 1:
+        parser.error("Task count must be at least 1.")
     run_simulation(n)
