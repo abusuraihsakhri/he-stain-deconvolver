@@ -27,7 +27,10 @@ def parse_vector(text):
             f"Expected 3 comma-separated numbers, e.g. 0.65,0.70,0.29 (got '{text}')"
         )
     try:
-        return tuple(float(p) for p in parts)
+        values = tuple(float(p) for p in parts)
+        if not all(np.isfinite(v) for v in values):
+            raise ValueError("components must be finite")
+        return values
     except ValueError as exc:
         raise argparse.ArgumentTypeError(f"Invalid number in '{text}': {exc}")
 
@@ -46,8 +49,14 @@ def resolve_stain_setup(args):
         if args.stain_names:
             if len(args.stain_names) > len(names):
                 raise ValueError("Too many --stain-names for the given --custom-vectors.")
+            if any(not name or name in {".", ".."} or
+                   not all(c.isalnum() or c in "_-" for c in name)
+                   for name in args.stain_names):
+                raise ValueError("Stain names may contain only letters, numbers, '-' and '_'.")
             for i, custom_name in enumerate(args.stain_names):
                 names[i] = custom_name
+            if len(set(names)) != len(names):
+                raise ValueError("Stain names must be unique.")
     else:
         preset = STAIN_VECTORS[args.stain_type]
         matrix, names = build_stain_matrix(preset)
@@ -137,6 +146,10 @@ def main(argv=None):
         parser.error(str(exc))
         return 2
 
+    if not np.isfinite(args.threshold) or args.threshold < 0:
+        parser.error("--threshold must be a finite nonnegative number.")
+    if args.white_ref is not None and any(v < 1 or v > 255 for v in args.white_ref):
+        parser.error("--white-ref values must be between 1 and 255.")
     images = find_images(args.input)
     if not images:
         print(f"No images found at '{args.input}'.", file=sys.stderr)
