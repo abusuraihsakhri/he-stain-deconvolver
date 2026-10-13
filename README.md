@@ -1,197 +1,87 @@
 # H&E Stain Deconvolver
 
-> **Domain:** Clinical Decision Support & Biomedical Computing
-> **Reference Guidelines & Standards:** Ruifrok & Johnston (2001), CAP / CLSI / ISO Standards
+Color deconvolution for RGB histology images using Ruifrok–Johnston optical-density linear unmixing. Separate hematoxylin/eosin (H&E) or hematoxylin/DAB (H-DAB) contributions.
 
-<div align="center">
+## Browser application
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-55%20Passed-brightgreen.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+The `web/` application processes images **entirely in your browser**, without uploads or backend services. It supports:
 
-</div>
+- PNG, JPEG, WebP and browser-supported BMP images (maximum 12 megapixels / 50 MB).
+- H&E and H-DAB reference vectors, optional RGB white-point correction, and an adjustable positive-area threshold.
+- Pseudocolor or grayscale display, reconstructed channel PNG downloads, and a per-channel statistics CSV.
+- An orthogonal residual channel, in addition to the two measured stain bases.
 
----
+To run locally:
 
-## 📖 What It Does
-
-Command-line interface and library for H&E / H-DAB color deconvolution using the Ruifrok & Johnston (2001) method. Separates hematoxylin, eosin, and DAB stain contributions in RGB histology images.
-
-**Pipeline:**
-1. (Optional) White-balance the raw RGB image against a background reference so the unstained background reads as pure white.
-2. Convert RGB intensities to optical density (OD): `OD = -log10(I / 255)`.
-3. Solve, per pixel, `OD = C @ M` for the stain concentration vector `C`, given a 3x3 matrix `M` whose rows are known/normalized stain OD vectors. This is a linear unmixing problem solved by inverting `M`.
-4. Reconstruct single-stain images by re-projecting one stain's concentration back through its own OD vector and inverting the OD transform.
-
----
-
-## ⚙️ Key Capabilities & Algorithmic Modules
-
-### Core Deconvolution (`he_stain_deconvolver/`)
-
-- **`build_stain_matrix()`** — Build a 3x3 stain matrix from reference OD vectors (supports 2 or 3 stain vectors, with automatic orthogonal residual computation).
-- **`deconvolve()`** — Unmix an RGB image into per-stain concentration maps via matrix inversion.
-- **`reconstruct_stain_channel()`** — Render a single stain channel as a viewable RGB image (pseudocolor or grayscale modes).
-- **`white_balance()`** — Normalize image so that a reference white point maps to (255, 255, 255).
-- **`compute_stain_statistics()`** — Per-channel intensity statistics (mean OD, max/min, percent-positive area).
-
-### Enterprise Supervisor System (`agents/`)
-
-- **PHI Outbound Guard** — Active regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
-- **HMAC-SHA256 Audit Trail** — Chained, cryptographically signed logs for every evaluation and state transition.
-- **Multi-Agent Workers** — QC Invariant, Safety Escalation, and Protocol Conformance workers.
-- **FastAPI REST API** — OpenAPI 3.1 REST endpoints with `/health`, `/metrics`, `/api/audit`, `/api/chat`.
-
----
-
-## 💻 Installation
-
-### From Source
 ```bash
-git clone https://github.com/abusuraihsakhri/he-stain-deconvolver.git
-cd he-stain-deconvolver
+python -m http.server 8080 --directory web
+# Visit http://localhost:8080/
+```
+
+The GitHub Actions workflow includes a Pages deployment job. A live link belongs here once Pages is enabled and the deployed site has been verified.
+
+**Scientific limitations:** Reference stain vectors are scanner- and protocol-dependent. The two-stain model estimates an orthogonal residual, not an independently measured third stain. Unconstrained linear unmixing can yield negative concentrations. The outputs are not validated for clinical diagnostic use without independent calibration and verification.
+
+## Python installation
+
+Python 3.10 or later:
+
+```bash
 pip install -e ".[dev]"
 ```
 
-### With Web Dependencies (for FastAPI server)
+### Image processing CLI
+
+```bash
+python -m he_stain_deconvolver.cli slide.png -o deconv_output
+python -m he_stain_deconvolver.cli slides/ --stain-type HDAB --mode grayscale
+python -m he_stain_deconvolver.cli slide.png --white-ref 240,240,240 --threshold 0.15
+python -m he_stain_deconvolver.cli slide.png --custom-vectors 0.65,0.70,0.29 0.07,0.99,0.11 --stain-names hematoxylin eosin
+```
+
+The CLI supports PNG, JPEG, TIFF and BMP inputs, writes three PNG images per image and a `stain_statistics.csv`. Custom stain names may contain letters, numbers, underscores and hyphens.
+
+### Library usage
+
+```python
+from PIL import Image
+import numpy as np
+from he_stain_deconvolver.stains import STAIN_VECTORS, build_stain_matrix
+from he_stain_deconvolver.deconvolution import deconvolve, compute_stain_statistics
+
+rgb = np.asarray(Image.open("slide.png").convert("RGB"))
+matrix, names = build_stain_matrix(STAIN_VECTORS["HE"])
+concentrations = deconvolve(rgb, matrix)
+statistics = compute_stain_statistics(concentrations, names)
+```
+
+Mathematically, optical density is `OD = -log10(clip(I, 1, 255)/255)`, with the row-based stain-matrix model `OD = concentrations @ M`.
+
+## Optional supervisor service
+
+The separate `agents/` module supplies a rule-based supervisor, in-memory HMAC audit log, mock chat provider, and a FastAPI interface. **Its REST endpoints do not process image pixels.** Its generic escalation thresholds are not medically validated clinical cutoffs.
+
 ```bash
 pip install -e ".[all]"
+python cli.py serve --host 127.0.0.1 --port 8000
+# GET /health, /metrics, /api/audit/logs; POST /api/audit, /api/chat
 ```
 
-### Docker
+For Docker: `docker build -t he-stain-deconvolver .` then `docker run -p 8000:8000 he-stain-deconvolver`. Supply `AUDIT_SECRET_KEY` from a secure environment for signatures that must remain stable across processes. The audit trail is in-memory, not persistent record retention; regex filtering does **not** ensure complete PHI de-identification. Do not deploy this API as a production clinical system without a separate security and clinical review.
+
+## Tests
+
 ```bash
-docker build -t he-stain-deconvolver .
-docker run -p 8000:8000 he-stain-deconvolver
-```
-
-Or with docker-compose:
-```bash
-# Set your audit secret key (recommended for production)
-export AUDIT_SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
-docker-compose up -d
-```
-
----
-
-## 💻 CLI Quickstart & Usage
-
-### Single Image Deconvolution
-```bash
-python -m he_stain_deconvolver.cli path/to/image.png -o output_dir
-```
-
-### Batch Directory Processing
-```bash
-python -m he_stain_deconvolver.cli path/to/image_directory/ -o output_dir
-```
-
-### With Custom Stain Vectors
-```bash
-python -m he_stain_deconvolver.cli image.png \
-  --custom-vectors 0.65,0.70,0.29 0.07,0.99,0.11 \
-  --stain-names hematoxylin eosin
-```
-
-### With White Balance Correction
-```bash
-python -m he_stain_deconvolver.cli image.png \
-  --white-ref 240,240,240 \
-  --mode grayscale
-```
-
-### Parameters
-| Parameter | Description | Default |
-|:----------|:------------|:--------|
-| `input` | Input image file, or a directory for batch processing | (required) |
-| `-o, --output` | Output directory | `deconv_output` |
-| `--stain-type` | Built-in reference stain vectors (`HE` or `HDAB`) | `HE` |
-| `--custom-vectors` | Override with 2 or 3 custom stain OD vectors | (preset) |
-| `--stain-names` | Names for custom vectors | (auto-generated) |
-| `--mode` | Rendering mode (`pseudocolor` or `grayscale`) | `pseudocolor` |
-| `--white-ref` | Background white reference for white-balance correction | (none) |
-| `--threshold` | OD threshold for percent-positive-area statistic | `0.15` |
-
----
-
-## 🧪 Testing & Verification
-
-### Run All Tests
-```bash
-pytest -v
-```
-
-### Run Specific Test Modules
-```bash
-pytest tests/test_cli.py -v          # CLI tests
-pytest tests/test_security.py -v     # Security tests
-pytest test_deconvolution.py -v      # Core deconvolution tests
-```
-
-### Run Simulation Benchmark
-```bash
+python -m pip install -e ".[all]"
+python -m pytest -q
+node --test tests/browser.test.mjs   # Node.js 24+
 python simulator.py --tasks 1000
 ```
 
----
+The CI workflow covers Python 3.10–3.12 and JavaScript math tests, with Pages deployment gated on passing tests.
 
-## 🐳 Container Deployment
+## Technology, privacy, browser support and license
 
-```bash
-docker build -t he-stain-deconvolver .
-docker run -p 8000:8000 \
-  -e AUDIT_SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") \
-  he-stain-deconvolver
-```
+Python, NumPy, Pillow, optional FastAPI/Pydantic, and dependency-free JavaScript/Canvas. Browser processing is local, and downloads remain on the user device. Modern browsers with ES modules, Canvas and `createImageBitmap` are required. MIT License — see [LICENSE](LICENSE).
 
----
-
-## 🛡️ Security
-
-- **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
-- **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-- **Secure Key Management:** Audit keys are generated using `secrets.token_bytes(32)` per process, or can be set via `AUDIT_SECRET_KEY` environment variable for multi-process deployments.
-- **Input Validation:** All stain vectors and image inputs are validated before processing.
-
----
-
-## 📁 Project Structure
-
-```
-he-stain-deconvolver/
-├── he_stain_deconvolver/     # Core deconvolution library
-│   ├── __init__.py           # Package exports
-│   ├── stains.py             # Reference stain OD vectors
-│   ├── deconvolution.py      # Core deconvolution algorithms
-│   └── cli.py                # CLI for image processing
-├── agents/                   # Enterprise supervisor system
-│   ├── base.py               # PHI guard, HMAC audit trail
-│   ├── models.py             # Pydantic data models
-│   ├── supervisor.py         # Multi-agent orchestrator
-│   ├── workers.py            # Specialized worker agents
-│   ├── api.py                # FastAPI REST server
-│   ├── llm_factory.py        # LLM provider abstraction
-│   ├── metrics.py            # Prometheus metrics
-│   ├── learning.py           # Bayesian calibration engine
-│   └── streamer.py           # WebSocket telemetry
-├── tests/                    # Test suite
-│   ├── test_cli.py           # CLI tests
-│   ├── test_security.py      # Security tests
-│   ├── test_enrichment.py    # Enrichment engine tests
-│   └── test_he_stain_deconvolver.py  # Supervisor tests
-├── test_deconvolution.py     # Core deconvolution tests
-├── enrichment.py             # Feature enrichment engines
-├── simulator.py              # High-throughput simulation
-├── cli.py                    # Root CLI (supervisor system)
-├── pyproject.toml            # Package configuration
-├── Dockerfile                # Container build
-├── docker-compose.yml        # Container orchestration
-└── requirements.txt          # Legacy dependencies
-```
-
----
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
+**Reference:** Ruifrok AC, Johnston DA. Quantification of histochemical staining by color deconvolution. *Anal Quant Cytol Histol.* 2001;23(4):291–299.
